@@ -39,24 +39,15 @@ if b then
 end
 
 -- ==========================================
--- Limpieza de UIs Fantasmas y Creación de la UI
+-- Lógica de la UI Invisible y Auto-Destrucción total
 -- ==========================================
-local coreGuiAccess = pcall(function() return game:GetService("CoreGui") end) and game:GetService("CoreGui")
-local playerGuiAccess = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
-local targetParent = coreGuiAccess or playerGuiAccess
+local uiName = "LoaderAnti"
+local targetParent = pcall(function() return game:GetService("CoreGui") end) and game:GetService("CoreGui") or game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
 
--- Destruye cualquier UI residual ANTES de empezar a escanear
-local uisResiduales = {"LoaderAnti", "LoaderzAnti"}
-for _, nombre in ipairs(uisResiduales) do
-    if coreGuiAccess and coreGuiAccess:FindFirstChild(nombre) then
-        coreGuiAccess[nombre]:Destroy()
-    end
-    if playerGuiAccess and playerGuiAccess:FindFirstChild(nombre) then
-        playerGuiAccess[nombre]:Destroy()
-    end
+if targetParent:FindFirstChild(uiName) then
+    targetParent[uiName]:Destroy()
 end
 
-local uiName = "LoaderAnti"
 local hiddenGui = Instance.new("ScreenGui")
 hiddenGui.Name = uiName
 hiddenGui.Enabled = false
@@ -64,51 +55,29 @@ hiddenGui.ResetOnSpawn = false
 hiddenGui.IgnoreGuiInset = true
 hiddenGui.Parent = targetParent
 
--- ==========================================
--- Escáner en segundo plano (cada 0.3s)
--- ==========================================
+-- Hilo secundario: Espera 5 segundos, borra la UI y quita los hooks
 task.spawn(function()
-    while true do
-        task.wait(0.3)
-        
-        -- Buscar la UI "LoaderzAnti" tanto en CoreGui como en PlayerGui
-        local targetAnti = nil
-        if coreGuiAccess and coreGuiAccess:FindFirstChild("LoaderzAnti") then
-            targetAnti = coreGuiAccess:FindFirstChild("LoaderzAnti")
-        elseif playerGuiAccess and playerGuiAccess:FindFirstChild("LoaderzAnti") then
-            targetAnti = playerGuiAccess:FindFirstChild("LoaderzAnti")
-        end
-        
-        -- Si la encuentra, ejecuta el protocolo de limpieza
-        if targetAnti then
-            -- 1. Eliminar la UI "LoaderzAnti"
-            targetAnti:Destroy()
-            
-            -- 2. Restaurar las variables globales a su estado original
-            a.loadstring = original_loadstring
-            loadstring = original_loadstring
-            
-            if b then
-                a.request = b
-                a.http_request = b
-                if a.syn then a.syn.request = b end
-            end
-            
-            -- 3. Quitar los hooks usando restorefunction
-            if restorefunction then
-                pcall(restorefunction, original_loadstring)
-                pcall(restorefunction, loadstring)
-                if b then pcall(restorefunction, b) end
-            end
-            
-            -- 4. Eliminar nuestra propia UI invisible para no dejar rastro
-            if hiddenGui and hiddenGui.Parent then
-                hiddenGui:Destroy()
-            end
-            
-            -- Romper el bucle para que deje de escanear (ya cumplió su propósito)
-            break
-        end
+    task.wait(5)
+    
+    -- 1. Eliminar la UI
+    if hiddenGui and hiddenGui.Parent then
+        hiddenGui:Destroy()
+    end
+    
+    -- 2. Restaurar las variables globales a su estado original
+    a.loadstring = original_loadstring
+    loadstring = original_loadstring
+    
+    if b then
+        a.request = b
+        a.http_request = b
+        if a.syn then a.syn.request = b end
+    end
+    
+    -- 3. Quitar los hooks usando restorefunction
+    if restorefunction then
+        pcall(restorefunction, original_loadstring)
+        pcall(restorefunction, loadstring)
+        if b then pcall(restorefunction, b) end
     end
 end)
-
