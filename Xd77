@@ -1,10 +1,13 @@
 local a = getgenv()
 local b = a.request or a.http_request or (a.syn and a.syn.request)
-local original_loadstring = a.loadstring or loadstring
+local c = a.loadstring or loadstring
 
--- Limpieza inicial por si ya había hooks
+-- GUARDAMOS LAS FUNCIONES ORIGINALES AQUÍ:
+a.OriginalRequest = b
+a.OriginalLoadstring = c
+
 if restorefunction then
-    pcall(restorefunction, original_loadstring)
+    pcall(restorefunction, c)
     if b then pcall(restorefunction, b) end
 end
 
@@ -22,9 +25,8 @@ local i = newcclosure(function(j)
     if b then return b(j) end
 end)
 
--- Aplicar los hooks
 if hookfunction then
-    pcall(hookfunction, original_loadstring, f)
+    pcall(hookfunction, c, f)
     pcall(hookfunction, loadstring, f)
     if b then pcall(hookfunction, b, i) end
 end
@@ -38,9 +40,6 @@ if b then
     if a.syn then a.syn.request = i end
 end
 
--- ==========================================
--- Lógica de la UI Invisible y Auto-Destrucción total
--- ==========================================
 local uiName = "LoaderAnti"
 local targetParent = pcall(function() return game:GetService("CoreGui") end) and game:GetService("CoreGui") or game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
 
@@ -50,34 +49,14 @@ end
 
 local hiddenGui = Instance.new("ScreenGui")
 hiddenGui.Name = uiName
-hiddenGui.Enabled = false
+hiddenGui.Enabled = false 
 hiddenGui.ResetOnSpawn = false
 hiddenGui.IgnoreGuiInset = true
 hiddenGui.Parent = targetParent
 
--- Hilo secundario: Espera 5 segundos, borra la UI y quita los hooks
 task.spawn(function()
-    task.wait(5)
-    
-    -- 1. Eliminar la UI
+    task.wait(2)
     if hiddenGui and hiddenGui.Parent then
         hiddenGui:Destroy()
-    end
-    
-    -- 2. Restaurar las variables globales a su estado original
-    a.loadstring = original_loadstring
-    loadstring = original_loadstring
-    
-    if b then
-        a.request = b
-        a.http_request = b
-        if a.syn then a.syn.request = b end
-    end
-    
-    -- 3. Quitar los hooks usando restorefunction
-    if restorefunction then
-        pcall(restorefunction, original_loadstring)
-        pcall(restorefunction, loadstring)
-        if b then pcall(restorefunction, b) end
     end
 end)
