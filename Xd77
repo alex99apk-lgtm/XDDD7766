@@ -39,17 +39,24 @@ if b then
 end
 
 -- ==========================================
--- Lógica de la UI Invisible
+-- Limpieza de UIs Fantasmas y Creación de la UI
 -- ==========================================
-local uiName = "LoaderAnti"
 local coreGuiAccess = pcall(function() return game:GetService("CoreGui") end) and game:GetService("CoreGui")
 local playerGuiAccess = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
 local targetParent = coreGuiAccess or playerGuiAccess
 
-if targetParent:FindFirstChild(uiName) then
-    targetParent[uiName]:Destroy()
+-- Destruye cualquier UI residual ANTES de empezar a escanear
+local uisResiduales = {"LoaderAnti", "LoaderzAnti"}
+for _, nombre in ipairs(uisResiduales) do
+    if coreGuiAccess and coreGuiAccess:FindFirstChild(nombre) then
+        coreGuiAccess[nombre]:Destroy()
+    end
+    if playerGuiAccess and playerGuiAccess:FindFirstChild(nombre) then
+        playerGuiAccess[nombre]:Destroy()
+    end
 end
 
+local uiName = "LoaderAnti"
 local hiddenGui = Instance.new("ScreenGui")
 hiddenGui.Name = uiName
 hiddenGui.Enabled = false
