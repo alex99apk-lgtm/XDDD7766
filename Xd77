@@ -41,7 +41,7 @@ end
 -- ==========================================
 -- Lógica de la UI Invisible
 -- ==========================================
-local uiName = "MiUiInvisible"
+local uiName = "LoaderAnti"
 local coreGuiAccess = pcall(function() return game:GetService("CoreGui") end) and game:GetService("CoreGui")
 local playerGuiAccess = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
 local targetParent = coreGuiAccess or playerGuiAccess
