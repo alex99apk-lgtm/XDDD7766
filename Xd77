@@ -1,0 +1,107 @@
+local a = getgenv()
+local b = a.request or a.http_request or (a.syn and a.syn.request)
+local original_loadstring = a.loadstring or loadstring
+
+-- Limpieza inicial por si ya había hooks
+if restorefunction then
+    pcall(restorefunction, original_loadstring)
+    if b then pcall(restorefunction, b) end
+end
+
+local d = a.loadstring or loadstring
+local e = clonefunction(d)
+
+local f = newcclosure(function(g, h)
+    return e(g, h)
+end)
+
+local i = newcclosure(function(j)
+    if type(j) == "table" and j.Url and string.match(string.lower(j.Url), "discord") then
+        return {StatusCode = 404, Body = "Blocked", Headers = {}}
+    end
+    if b then return b(j) end
+end)
+
+-- Aplicar los hooks
+if hookfunction then
+    pcall(hookfunction, original_loadstring, f)
+    pcall(hookfunction, loadstring, f)
+    if b then pcall(hookfunction, b, i) end
+end
+
+a.loadstring = f
+loadstring = f
+
+if b then
+    a.request = i
+    a.http_request = i
+    if a.syn then a.syn.request = i end
+end
+
+-- ==========================================
+-- Lógica de la UI Invisible
+-- ==========================================
+local uiName = "MiUiInvisible"
+local coreGuiAccess = pcall(function() return game:GetService("CoreGui") end) and game:GetService("CoreGui")
+local playerGuiAccess = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+local targetParent = coreGuiAccess or playerGuiAccess
+
+if targetParent:FindFirstChild(uiName) then
+    targetParent[uiName]:Destroy()
+end
+
+local hiddenGui = Instance.new("ScreenGui")
+hiddenGui.Name = uiName
+hiddenGui.Enabled = false
+hiddenGui.ResetOnSpawn = false
+hiddenGui.IgnoreGuiInset = true
+hiddenGui.Parent = targetParent
+
+-- ==========================================
+-- Escáner en segundo plano (cada 0.3s)
+-- ==========================================
+task.spawn(function()
+    while true do
+        task.wait(0.3)
+        
+        -- Buscar la UI "LoaderzAnti" tanto en CoreGui como en PlayerGui
+        local targetAnti = nil
+        if coreGuiAccess and coreGuiAccess:FindFirstChild("LoaderzAnti") then
+            targetAnti = coreGuiAccess:FindFirstChild("LoaderzAnti")
+        elseif playerGuiAccess and playerGuiAccess:FindFirstChild("LoaderzAnti") then
+            targetAnti = playerGuiAccess:FindFirstChild("LoaderzAnti")
+        end
+        
+        -- Si la encuentra, ejecuta el protocolo de limpieza
+        if targetAnti then
+            -- 1. Eliminar la UI "LoaderzAnti"
+            targetAnti:Destroy()
+            
+            -- 2. Restaurar las variables globales a su estado original
+            a.loadstring = original_loadstring
+            loadstring = original_loadstring
+            
+            if b then
+                a.request = b
+                a.http_request = b
+                if a.syn then a.syn.request = b end
+            end
+            
+            -- 3. Quitar los hooks usando restorefunction
+            if restorefunction then
+                pcall(restorefunction, original_loadstring)
+                pcall(restorefunction, loadstring)
+                if b then pcall(restorefunction, b) end
+            end
+            
+            -- 4. Eliminar nuestra propia UI invisible para no dejar rastro
+            if hiddenGui and hiddenGui.Parent then
+                hiddenGui:Destroy()
+            end
+            
+            -- Romper el bucle para que deje de escanear (ya cumplió su propósito)
+            break
+        end
+    end
+end)
+
