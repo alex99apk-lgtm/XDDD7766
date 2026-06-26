@@ -54,9 +54,41 @@ hiddenGui.ResetOnSpawn = false
 hiddenGui.IgnoreGuiInset = true
 hiddenGui.Parent = targetParent
 
+-- TAREA PROGRAMADA: Espera 3.5 segundos, elimina la UI y restaura el entorno
 task.spawn(function()
-    task.wait(2)
+    task.wait(4.5)
+    
+    -- 1. Restaurar las funciones C originales desde el respaldo
+    if restorefunction then
+        if a.OriginalLoadstring then 
+            pcall(restorefunction, a.OriginalLoadstring) 
+        end
+        if a.OriginalRequest then 
+            pcall(restorefunction, a.OriginalRequest) 
+        end
+    end
+
+    -- 2. Devolver las variables globales a su estado natural
+    if a.OriginalLoadstring then
+        a.loadstring = a.OriginalLoadstring
+        loadstring = a.OriginalLoadstring
+    end
+
+    if a.OriginalRequest then
+        a.request = a.OriginalRequest
+        a.http_request = a.OriginalRequest
+        if a.syn then 
+            a.syn.request = a.OriginalRequest 
+        end
+    end
+
+    -- 3. Limpiar la UI oculta de forma segura
     if hiddenGui and hiddenGui.Parent then
         hiddenGui:Destroy()
+    end
+    
+    -- Limpieza adicional por si acaso quedó algún rastro en el parent
+    if targetParent and targetParent:FindFirstChild(uiName) then
+        targetParent[uiName]:Destroy()
     end
 end)
